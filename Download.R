@@ -9,7 +9,7 @@
 #Install rentrez package
 install.packages("rentrez")
 
-#Create vector of character to represent NCBI IDs for each sequence
+#Create vector of characters to represent NCBI IDs for each sequence
 ncbi_ids <- c("HQ433692.1","HQ433694.1","HQ433691.1")
 
 #Load rentrez package
