@@ -1,0 +1,144 @@
+---
+title: "Analysis"
+author: "Jeremie Alexander"
+date: "13/02/2023"
+output: html_document
+---
+[GitHub Repository](https://github.com/JeremieAlex/Rentrez)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load Required Libraries
+```{r, message=FALSE}
+library(dplyr)
+library(scales)
+library(BiocManager)
+```
+
+
+Import the Sequences.csv file. There is an extra column (x) which was visualized with data checking function, so delete that as well.
+
+```{r}
+setwd("~/Documents/BIOL_432/Week_6/Assignment/Rentrez")
+SequenceData = read.csv("Sequences.csv")
+head(SequenceData)
+SequenceData = dplyr::select(SequenceData, -c(X))
+head(SequenceData)
+```
+
+Count the number of each base pair (A, T, C and G), in each of the three sequences
+
+```{r}
+BaseCounts = lapply(SequenceData$Sequence, function(x) {
+  table(strsplit(x, "")[[1]])
+})
+
+BaseCounts
+```
+
+Print out each sequence (Don't know if you want IDs or actual sequence, so here's both)
+
+```{r}
+#Print IDs
+SeqNames = sub(" .*", "", SequenceData$Name)
+SeqNames
+
+#Print Sequences
+Seq = SequenceData$Sequence
+Seq
+```
+
+Print out the number of each nucleotide as a table for each of the three sequences (Confused with step above so just change to seq if full DNA sequences are wanted):
+
+```{r}
+NtdNumberbySeq <- do.call(cbind, BaseCounts)
+colnames(NtdNumberbySeq) <- SeqNames #Change to Seq if you want full DNA sequences
+rownames(NtdNumberbySeq) <- c("A", "T", "C", "G")
+
+
+NumberbySeq = t(NtdNumberbySeq)
+NumberbySeq
+```
+
+
+Include an image of a bacteria from the internet, and a link to the Wikipedia page about Borrelia burgdorferi
+
+![Image 1. Borrelia burgdorferi bacterium using darkfield microscopy](Borrelia_burgdorferi.png)
+
+
+
+[Borrelia burgdorferi wikipedia page](https://en.wikipedia.org/wiki/Borrelia_burgdorferi)
+
+Calculate GC Content (% of nucleotides that are G or C) and create a final table showing GC content for each sequence ID
+
+```{r}
+NumberbySeq = data.frame(NumberbySeq)
+
+GCCont <- c()
+
+for (i in 1:nrow(NumberbySeq)) {
+  Cont <- sum(NumberbySeq[i,(3:4)]) / sum(NumberbySeq[i,])
+  GCCont <- c(GCCont, Cont)
+}
+
+GCCont
+
+#Create Final Table
+
+GC_Content = scales::percent(GCCont)
+Sequence_ID = SeqNames
+
+GCContTable = data.frame(Sequence_ID, GC_Content)
+GCContTable
+```
+
+PART 2
+
+Load annotate package from bioconductor
+
+```{r, message=FALSE}
+install("annotate")
+library(annotate)
+```
+
+Import Sequence and run BLAST on it
+
+```{r}
+#Input query sequence
+HumIsoSeq = "GCCTGATGGAGGGGGATAACTACTGGAAACGGTAGCTAATACCGCATGAC
+CTCGCAAGAGCAAAGTGGGGGACCTTAGGGCCTCACGCCATCGGATGAAC
+CCAGATGGGATTAGCTAGTAGGTGGGGTAATGGCTCACCTAGGCGACGAT
+CCCTAGCTGGTCTGAGAGGATGACCAGCCACACTGGAACTGAGACACGGT
+CCAGACTCCTACGGGAGGCAGCAGTGGGGAATATTGCACAATGGGCGCAA"
+
+```
+
+BLAST query sequence
+```{r,message=FALSE}
+SeqBlast = blastSequences(paste(HumIsoSeq), as='data.frame', hitListSize = 10, timeout = 200)
+```
+
+Determine if it is human or another organism. Write a report in R Markdown explaining to the clinician whether this is something to be concerned about
+
+By observing the table below (Table.1), we can say that this DNA is not human. Instead, we can assume with high confidence that it is bacterial, likely belonging to the Yersinia pestis bacterium. Confidence can be observed by the e-values which appear to be very small indicated that it is unlikely to get this match by chance. Furthermore, the scores all appear to be high indicated a strong match.  
+
+```{r, echo = FALSE}
+Table_1 = data.frame(OrganismID = SeqBlast[1:10,"Hit_def"], E_Value = SeqBlast[1:10, "Hsp_evalue"], Scores = SeqBlast[1:10, "Hsp_score"] )
+Table_1
+```
+Table 1. Top 10 accession sequences that match the query sequence, along with the e-value and scores. Low e-values and high scores indicate that these are strong matches to the query sequence.
+
+In terms of concern, the Yersinia pestis bacterium is the organism that causes the plague, a disease which devastated the population centuries ago (https://www.cdc.gov/). Luckily, modern day antibiotics (eg.Gentamicin and fluoroquinolones) are highly effective in treating the plague. However, if it goes unnoticed it can cause serious symptoms, potentially leading to death (https://www.cdc.gov/). Thus, in this scenario the actual treatment of the patient is not much of a concern, however, action should be taken to trace the patient's contacts to limit the spread of the bacterium to unsuspecting and/or vulnerable populations.    
+
+
+
+
+
+
+
+
+
+
+
